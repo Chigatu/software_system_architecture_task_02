@@ -1,0 +1,350 @@
+openapi: 3.0.0
+info:
+  title: Medical Records Management System API
+  version: 1.0.0
+  description: API для управления медицинскими записями (Вариант 20)
+
+servers:
+  - url: http://localhost:8080/api
+    description: Development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        login:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        isActive:
+          type: boolean
+      required:
+        - login
+        - email
+        - fullName
+    
+    CreateUserRequest:
+      type: object
+      properties:
+        login:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        patronymic:
+          type: string
+        password:
+          type: string
+      required:
+        - login
+        - email
+        - firstName
+        - lastName
+        - password
+    
+    LoginRequest:
+      type: object
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+      required:
+        - login
+        - password
+    
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    
+    Patient:
+      type: object
+      properties:
+        id:
+          type: integer
+        fullName:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        snils:
+          type: string
+        policyNumber:
+          type: string
+        age:
+          type: integer
+    
+    MedicalRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        patientId:
+          type: integer
+        doctorId:
+          type: integer
+        diagnosis:
+          type: object
+          properties:
+            code:
+              type: string
+            description:
+              type: string
+        complaints:
+          type: string
+        symptoms:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              severity:
+                type: string
+        treatments:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              dosage:
+                type: string
+              frequency:
+                type: string
+        recommendations:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+paths:
+  /auth/register:
+    post:
+      summary: Регистрация нового пользователя
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Пользователь создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Невалидные данные
+        '409':
+          description: Пользователь уже существует
+  
+  /auth/login:
+    post:
+      summary: Вход в систему
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Неверные учетные данные
+  
+  /users/search:
+    get:
+      summary: Поиск пользователей по маске имени
+      tags:
+        - Users
+      parameters:
+        - name: mask
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Маска для поиска (часть имени или фамилии)
+      responses:
+        '200':
+          description: Список найденных пользователей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+  
+  /patients:
+    post:
+      summary: Регистрация пациента
+      tags:
+        - Patients
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                patronymic:
+                  type: string
+                phone:
+                  type: string
+                address:
+                  type: string
+                birthDate:
+                  type: string
+                  format: date
+                snils:
+                  type: string
+                policyNumber:
+                  type: string
+      responses:
+        '201':
+          description: Пациент зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+  
+  /patients/search:
+    get:
+      summary: Поиск пациентов по ФИО
+      tags:
+        - Patients
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: fullName
+          in: query
+          required: true
+          schema:
+            type: string
+          description: ФИО для поиска
+      responses:
+        '200':
+          description: Список найденных пациентов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Patient'
+  
+  /medical-records:
+    post:
+      summary: Создание медицинской записи
+      tags:
+        - Medical Records
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                patientId:
+                  type: integer
+                diagnosisCode:
+                  type: string
+                diagnosisDescription:
+                  type: string
+                complaints:
+                  type: string
+      responses:
+        '201':
+          description: Медицинская запись создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecord'
+  
+  /medical-records/patient/{patientId}:
+    get:
+      summary: Получение истории записей пациента
+      tags:
+        - Medical Records
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: История записей
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MedicalRecord'
+  
+  /medical-records/{code}:
+    get:
+      summary: Получение записи по коду
+      tags:
+        - Medical Records
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Код записи (формат MED-YYYYMMDD-XXXXX)
+      responses:
+        '200':
+          description: Медицинская запись
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicalRecord'
+        '404':
+          description: Запись не найдена
