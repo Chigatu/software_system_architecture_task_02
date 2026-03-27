@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Records API - Swagger UI</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .topbar {
+            background-color: #1b2a3a;
+            padding: 10px 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .topbar h1 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+        .topbar a {
+            color: #61dafb;
+            text-decoration: none;
+        }
+        .info {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1>🏥 Medical Records Management System API</h1>
+        <div>
+            <span style="margin-right: 15px;">Вариант 20</span>
+            <a href="https://github.com" target="_blank">GitHub</a>
+        </div>
+    </div>
+    <div class="info">
+        <p><strong>🔐 Аутентификация:</strong> Для защищенных эндпоинтов используйте кнопку "Authorize" и введите токен в формате: <code>Bearer &lt;your-token&gt;</code></p>
+        <p><strong>📝 Получить токен:</strong> Сначала зарегистрируйтесь через <code>POST /api/auth/register</code>, затем выполните <code>POST /api/auth/login</code></p>
+        <p><strong>💾 Хранилище:</strong> Данные хранятся в памяти, при перезапуске сервера все данные сбрасываются</p>
+    </div>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            SwaggerUIBundle({
+                url: "/swagger/openapi.yaml",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "BaseLayout",
+                docExpansion: "list",
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+                tryItOutEnabled: true,
+                filter: true,
+                requestInterceptor: (request) => {
+                    console.log("Request:", request);
+                    return request;
+                },
+                responseInterceptor: (response) => {
+                    console.log("Response:", response);
+                    return response;
+                }
+            });
+        };
+    </script>
+</body>
+</html>
