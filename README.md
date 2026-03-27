@@ -1,6 +1,3 @@
-cd ~/medical-records-system
-
-cat > README.md << 'EOF'
 # Medical Records Management System
 
 REST API сервис для управления медицинскими записями (Вариант 20 домашнего задания).
@@ -298,4 +295,3 @@ sudo apt install -y build-essential cmake libpoco-dev
 ## Лицензия
 
 MIT
-EOF
