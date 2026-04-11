@@ -3,6 +3,7 @@
 #include <Poco/File.h>
 #include <iostream>
 #include <memory>
+#include <vector>
 
 // Domain
 #include "domain/entities/User.h"
@@ -23,8 +24,32 @@
 
 // Presentation
 #include "presentation/RequestHandlerFactory.h"
+#include "presentation/StaticFileHandler.h"
 
 using namespace medical;
+
+std::string findWebPath() {
+    std::vector<std::string> possiblePaths = {
+        "./web",
+        "../web",
+        "web",
+        "/app/web"
+    };
+    
+    for (const auto& path : possiblePaths) {
+        Poco::File webDir(path);
+        if (webDir.exists() && webDir.isDirectory()) {
+            Poco::File docsFile(path + "/docs/index.html");
+            if (docsFile.exists()) {
+                std::cout << "  Found web files at: " << path << std::endl;
+                return path;
+            }
+        }
+    }
+    
+    std::cout << "  Warning: Could not find web directory, using './web'" << std::endl;
+    return "./web";
+}
 
 int main() {
     try {
@@ -33,19 +58,21 @@ int main() {
         std::cout << "Architecture: Domain-Driven Design" << std::endl;
         std::cout << "========================================" << std::endl;
         
-        std::string webPath = "../web";
+        std::string webPath = findWebPath();
+        presentation::StaticFileHandler::setWebPath(webPath);
+        
         Poco::File docsFile(webPath + "/docs/index.html");
         if (docsFile.exists()) {
-            std::cout << "  ✓ web/docs/index.html exists" << std::endl;
+            std::cout << "  ✓ " << webPath << "/docs/index.html exists" << std::endl;
         } else {
-            std::cout << "  ✗ web/docs/index.html NOT FOUND!" << std::endl;
+            std::cout << "  ✗ " << webPath << "/docs/index.html NOT FOUND!" << std::endl;
         }
         
         Poco::File swaggerFile(webPath + "/swagger/openapi.yaml");
         if (swaggerFile.exists()) {
-            std::cout << "  ✓ web/swagger/openapi.yaml exists" << std::endl;
+            std::cout << "  ✓ " << webPath << "/swagger/openapi.yaml exists" << std::endl;
         } else {
-            std::cout << "  ✗ web/swagger/openapi.yaml NOT FOUND!" << std::endl;
+            std::cout << "  ✗ " << webPath << "/swagger/openapi.yaml NOT FOUND!" << std::endl;
         }
         std::cout << "========================================" << std::endl;
         

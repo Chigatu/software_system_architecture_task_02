@@ -8,10 +8,11 @@ namespace medical::presentation {
 
 class StaticFileHandler : public Poco::Net::HTTPRequestHandler {
 private:
-    std::string basePath_;
+    static std::string webPath_;
     
 public:
-    explicit StaticFileHandler(const std::string& basePath);
+    static void setWebPath(const std::string& path);
+    explicit StaticFileHandler();
     void handleRequest(Poco::Net::HTTPServerRequest& request,
                       Poco::Net::HTTPServerResponse& response) override;
 };

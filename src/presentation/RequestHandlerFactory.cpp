@@ -33,7 +33,7 @@ Poco::Net::HTTPRequestHandler* RequestHandlerFactory::createRequestHandler(
     // Static files для Swagger UI
     if (uri == "/docs" || uri == "/docs/" || uri.find("/docs/") == 0 || 
         uri == "/swagger/openapi.yaml" || uri.find("/swagger/") == 0) {
-        return new StaticFileHandler("web");
+        return new StaticFileHandler();
     }
     
     // Health check

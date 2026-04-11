@@ -2,11 +2,18 @@
 #include <Poco/File.h>
 #include <Poco/Path.h>
 #include <Poco/FileStream.h>
+#include <iostream>
 
 namespace medical::presentation {
 
-StaticFileHandler::StaticFileHandler(const std::string& basePath) 
-    : basePath_(basePath) {}
+std::string StaticFileHandler::webPath_ = "./web";
+
+void StaticFileHandler::setWebPath(const std::string& path) {
+    webPath_ = path;
+    std::cout << "StaticFileHandler web path set to: " << webPath_ << std::endl;
+}
+
+StaticFileHandler::StaticFileHandler() {}
 
 void StaticFileHandler::handleRequest(Poco::Net::HTTPServerRequest& request,
                                      Poco::Net::HTTPServerResponse& response) {
@@ -14,13 +21,13 @@ void StaticFileHandler::handleRequest(Poco::Net::HTTPServerRequest& request,
     std::string filePath;
     
     if (uri == "/docs" || uri == "/docs/") {
-        filePath = basePath_ + "/docs/index.html";
+        filePath = webPath_ + "/docs/index.html";
     } else if (uri == "/swagger/openapi.yaml") {
-        filePath = basePath_ + "/swagger/openapi.yaml";
+        filePath = webPath_ + "/swagger/openapi.yaml";
     } else if (uri.find("/docs/") == 0) {
-        filePath = basePath_ + uri;
+        filePath = webPath_ + uri;
     } else {
-        filePath = basePath_ + uri;
+        filePath = webPath_ + uri;
     }
     
     try {
