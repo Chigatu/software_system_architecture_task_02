@@ -32,18 +32,19 @@ else
     print_result 1 "Health check failed (HTTP $http_code)"
 fi
 
-# 2. Register new user
+# 2. Register new user with unique login
+TIMESTAMP=$(date +%s)
 echo -e "\n${YELLOW}2. Register User${NC}"
 response=$(curl -s -w "\n%{http_code}" -X POST $BASE_URL/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{
-    "login": "testdoctor",
-    "email": "test@hospital.ru",
-    "firstName": "Тест",
-    "lastName": "Докторов",
-    "patronymic": "Тестович",
-    "password": "test123"
-  }')
+  -d "{
+    \"login\": \"testdoctor_${TIMESTAMP}\",
+    \"email\": \"test_${TIMESTAMP}@hospital.ru\",
+    \"firstName\": \"Тест\",
+    \"lastName\": \"Докторов\",
+    \"patronymic\": \"Тестович\",
+    \"password\": \"test123\"
+  }")
 http_code=$(echo "$response" | tail -n1)
 body=$(echo "$response" | head -n-1)
 if [ "$http_code" = "201" ]; then
@@ -51,20 +52,26 @@ if [ "$http_code" = "201" ]; then
     echo "   Response: $body"
 else
     print_result 1 "User registration failed (HTTP $http_code)"
+    echo "   Response: $body"
 fi
 
 # 3. Login to get token
 echo -e "\n${YELLOW}3. Login${NC}"
 response=$(curl -s -X POST $BASE_URL/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"login":"testdoctor","password":"test123"}')
-TOKEN=$(echo "$response" | grep -o '"token":"[^"]*"' | head -1 | sed 's/"token":"//' | sed 's/"//')
+  -d "{\"login\":\"testdoctor_${TIMESTAMP}\",\"password\":\"test123\"}")
+
+# Extract token properly using python3 (more reliable)
+TOKEN=$(echo "$response" | python3 -c "import sys, json; print(json.load(sys.stdin)['token'])" 2>/dev/null)
+
 if [ -n "$TOKEN" ] && [ "$TOKEN" != "null" ]; then
     print_result 0 "Login successful"
     echo "   Token: ${TOKEN:0:20}..."
+    echo "   Full token: $TOKEN"
 else
     print_result 1 "Login failed"
     echo "   Response: $response"
+    exit 1
 fi
 
 # 4. Search users by name mask
@@ -99,9 +106,11 @@ body=$(echo "$response" | head -n-1)
 if [ "$http_code" = "201" ]; then
     print_result 0 "Patient creation passed"
     echo "   Response: $body"
-    PATIENT_ID=$(echo "$body" | grep -o '"id":[0-9]*' | head -1 | cut -d':' -f2)
+    PATIENT_ID=$(echo "$body" | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])" 2>/dev/null)
+    echo "   Patient ID: $PATIENT_ID"
 else
     print_result 1 "Patient creation failed (HTTP $http_code)"
+    echo "   Response: $body"
 fi
 
 # 6. Create patient without auth (should fail)
@@ -137,38 +146,45 @@ else
 fi
 
 # 8. Create medical record (with auth)
-echo -e "\n${YELLOW}8. Create Medical Record (with auth)${NC}"
-response=$(curl -s -w "\n%{http_code}" -X POST $BASE_URL/api/medical-records \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{
-    \"patientId\": $PATIENT_ID,
-    \"doctorId\": 1,
-    \"diagnosisCode\": \"J06.9\",
-    \"diagnosisDescription\": \"Острая респираторная инфекция верхних дыхательных путей\",
-    \"complaints\": \"Кашель, насморк, температура 38.5, головная боль\"
-  }")
-http_code=$(echo "$response" | tail -n1)
-body=$(echo "$response" | head -n-1)
-if [ "$http_code" = "201" ]; then
-    print_result 0 "Medical record creation passed"
-    echo "   Response: $body"
-    RECORD_CODE=$(echo "$body" | grep -o '"code":"[^"]*"' | head -1 | sed 's/"code":"//' | sed 's/"//')
-else
-    print_result 1 "Medical record creation failed (HTTP $http_code)"
+if [ -n "$PATIENT_ID" ]; then
+    echo -e "\n${YELLOW}8. Create Medical Record (with auth)${NC}"
+    response=$(curl -s -w "\n%{http_code}" -X POST $BASE_URL/api/medical-records \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer $TOKEN" \
+      -d "{
+        \"patientId\": $PATIENT_ID,
+        \"doctorId\": 1,
+        \"diagnosisCode\": \"J06.9\",
+        \"diagnosisDescription\": \"Острая респираторная инфекция верхних дыхательных путей\",
+        \"complaints\": \"Кашель, насморк, температура 38.5, головная боль\"
+      }")
+    http_code=$(echo "$response" | tail -n1)
+    body=$(echo "$response" | head -n-1)
+    if [ "$http_code" = "201" ]; then
+        print_result 0 "Medical record creation passed"
+        echo "   Response: $body"
+        RECORD_CODE=$(echo "$body" | python3 -c "import sys, json; print(json.load(sys.stdin)['code'])" 2>/dev/null)
+        echo "   Record code: $RECORD_CODE"
+    else
+        print_result 1 "Medical record creation failed (HTTP $http_code)"
+        echo "   Response: $body"
+    fi
 fi
 
 # 9. Get patient records
-echo -e "\n${YELLOW}9. Get Patient Records${NC}"
-response=$(curl -s -w "\n%{http_code}" "$BASE_URL/api/medical-records/patient/$PATIENT_ID" \
-  -H "Authorization: Bearer $TOKEN")
-http_code=$(echo "$response" | tail -n1)
-body=$(echo "$response" | head -n-1)
-if [ "$http_code" = "200" ]; then
-    print_result 0 "Get patient records passed"
-    echo "   Response: $body"
-else
-    print_result 1 "Get patient records failed (HTTP $http_code)"
+if [ -n "$PATIENT_ID" ]; then
+    echo -e "\n${YELLOW}9. Get Patient Records${NC}"
+    response=$(curl -s -w "\n%{http_code}" "$BASE_URL/api/medical-records/patient/$PATIENT_ID" \
+      -H "Authorization: Bearer $TOKEN")
+    http_code=$(echo "$response" | tail -n1)
+    body=$(echo "$response" | head -n-1)
+    if [ "$http_code" = "200" ]; then
+        print_result 0 "Get patient records passed"
+        echo "   Response: $body"
+    else
+        print_result 1 "Get patient records failed (HTTP $http_code)"
+        echo "   Response: $body"
+    fi
 fi
 
 # 10. Get record by code

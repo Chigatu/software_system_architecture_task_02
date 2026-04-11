@@ -294,8 +294,3 @@ ports:
 sudo apt update
 sudo apt install -y build-essential cmake libpoco-dev
 ```
-
-## Лицензия
-
-MIT
-EOF
